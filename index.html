@@ -19,6 +19,29 @@
         border-bottom: 1px solid rgba(255,255,255,0.16);
       }
 
+      .site-nav {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .site-nav a {
+        border: 1px solid rgba(255,255,255,0.22);
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        color: #fff;
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .site-nav a:hover {
+        background: rgba(255,255,255,0.16);
+      }
+
       h1 {
         margin: 0;
         font-size: clamp(2rem, 7vw, 4rem);
@@ -45,6 +68,9 @@
     <header>
       <h1>trollrunner-videos</h1>
       <p class="text-view-note">Recommended text view be 50% for mobile and 100% tablet devices</p>
+      <nav class="site-nav" aria-label="Site links">
+        <a href="https://trollrunner.net">Main Site</a>
+      </nav>
     </header>
     <main>
       <p>GitHub Pages site for videos.trollrunner.net</p>
