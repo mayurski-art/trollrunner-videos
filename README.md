@@ -14,6 +14,13 @@ other Troll Runner sites). No build step.
 - `assets/js/admin-auth.js` — client-side admin password gate (shared pattern).
 - `supabase/videos.sql` — one-time table + RLS setup.
 
+## Montage hero
+The header is a DeGods-style full-bleed video montage. To go live, drop your
+edit at **`assets/montage.mp4`** (muted, looping; H.264 mp4, keep it small/web-
+optimized) and commit. Until that file exists, an animated retro placeholder
+("TROLL MONTAGE — COMING SOON") shows in its place — no code changes needed when
+you add the file.
+
 ## One-time setup
 1. Open the Supabase project (`tjsyhfplxjtakdfkpdtg`) → SQL editor.
 2. Paste and run `supabase/videos.sql`. This creates the `videos` table,

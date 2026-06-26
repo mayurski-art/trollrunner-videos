@@ -62,15 +62,56 @@ button{font-family:var(--pixel);cursor:pointer}
   box-shadow:0 0 0 3px #0b0b1a, 6px 6px 0 0 rgba(0,0,0,.55);
 }
 
-/* ── HEADER ── */
+/* ── HEADER / MONTAGE HERO ── */
 header{
   position:relative;
-  padding:30px 18px 22px;
+  min-height:clamp(380px,64vh,700px);
+  display:flex; align-items:center; justify-content:center;
+  padding:48px 18px;
   text-align:center;
   border-bottom:3px solid var(--line);
   background:linear-gradient(180deg,#161433,#0b0b1a);
   overflow:hidden;
 }
+/* full-bleed montage (DeGods-style) */
+.montage{ position:absolute; inset:0; z-index:0; }
+.montage-vid{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; opacity:0; transition:opacity .6s ease;
+}
+header.has-montage .montage-vid{ opacity:1; }
+header.has-montage .montage-ph{ opacity:0; }
+.montage-ph{
+  position:absolute; inset:0; transition:opacity .6s ease;
+  display:flex; align-items:center; justify-content:center;
+  background:
+    repeating-linear-gradient(115deg,#16142e 0 40px,#1b1840 40px 80px),
+    radial-gradient(circle at 28% 25%, #3a1d63, transparent 55%),
+    radial-gradient(circle at 82% 75%, #5a1342, transparent 55%);
+  background-size:240% 240%, cover, cover;
+  animation:montage-pan 16s linear infinite;
+}
+@keyframes montage-pan{ from{background-position:0 0,0 0,0 0} to{background-position:240% 0,0 0,0 0} }
+@media (prefers-reduced-motion: reduce){ .montage-ph{ animation:none; } }
+.montage-ph .film{
+  position:absolute; left:0; right:0; height:22px; opacity:.7;
+  background:repeating-linear-gradient(90deg,#000 0 18px,#2a2750 18px 26px);
+}
+.montage-ph .film.top{ top:0; } .montage-ph .film.bottom{ bottom:0; }
+.montage-ph-label{
+  font-family:var(--pixel); font-size:clamp(9px,1.7vw,13px); color:var(--amber);
+  letter-spacing:1px; text-shadow:2px 2px 0 #000;
+  padding:12px 16px; border:3px dashed var(--line); background:rgba(0,0,0,.4);
+}
+.montage-scrim{
+  position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(11,11,26,.5) 0%, rgba(11,11,26,.25) 38%, rgba(11,11,26,.9) 100%);
+}
+.header-inner{ position:relative; z-index:2; }
+.scroll-cue{ margin-top:18px; font-family:var(--pixel); font-size:10px; color:var(--cyan); animation:bob 1.6s ease-in-out infinite; }
+@keyframes bob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+@media (prefers-reduced-motion: reduce){ .scroll-cue{ animation:none; } }
+
 .troll{ font-size:34px; filter:drop-shadow(0 0 6px var(--green)); }
 h1{
   font-family:var(--pixel);
@@ -223,15 +264,34 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
 </head>
 <body>
   <header>
-    <div class="troll">🧌</div>
-    <h1>TROLLRUNNER <span class="arrow">▶</span> VIDEOS</h1>
-    <div class="tag-line">drops on tape. organized by topic.</div>
-    <div class="marquee"><span>★ DRIVE ★ X ★ TIKTOK ★ INSERT COIN TO CONTINUE ★ TROLL RUNS THE INLAND EMPIRE ★ DRIVE ★ X ★ TIKTOK ★</span></div>
-    <nav class="site-nav" aria-label="Site links">
-      <a href="https://trollrunner.net">MAIN SITE</a>
-      <a href="https://games.trollrunner.net">GAMES</a>
-      <a href="https://stickers.trollrunner.net">STICKERS</a>
-    </nav>
+    <!-- ── MONTAGE HERO ──────────────────────────────────────────────
+         Drop your edit at assets/montage.mp4 (muted/looping autoplay).
+         Until the file exists, the animated placeholder below shows.
+    -->
+    <div class="montage" aria-hidden="true">
+      <div class="montage-ph">
+        <div class="film top"></div>
+        <div class="montage-ph-label">▣ TROLL MONTAGE — COMING SOON ▣</div>
+        <div class="film bottom"></div>
+      </div>
+      <video id="montage" class="montage-vid" autoplay muted loop playsinline preload="auto">
+        <source src="assets/montage.mp4" type="video/mp4" />
+      </video>
+      <div class="montage-scrim"></div>
+    </div>
+
+    <div class="header-inner">
+      <div class="troll">🧌</div>
+      <h1>TROLLRUNNER <span class="arrow">▶</span> VIDEOS</h1>
+      <div class="tag-line">drops on tape. organized by topic.</div>
+      <div class="marquee"><span>★ DRIVE ★ X ★ TIKTOK ★ INSERT COIN TO CONTINUE ★ TROLL RUNS THE INLAND EMPIRE ★ DRIVE ★ X ★ TIKTOK ★</span></div>
+      <nav class="site-nav" aria-label="Site links">
+        <a href="https://trollrunner.net">MAIN SITE</a>
+        <a href="https://games.trollrunner.net">GAMES</a>
+        <a href="https://stickers.trollrunner.net">STICKERS</a>
+      </nav>
+      <div class="scroll-cue">▼ THE DROPS ▼</div>
+    </div>
   </header>
 
   <main>
@@ -291,6 +351,23 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
     <div class="pixel">© TROLLRUNNER • PRESS START</div>
   </footer>
 
+  <script>
+    // Montage hero: reveal the video only once it actually loads; otherwise
+    // the animated placeholder stays. Pause when scrolled offscreen.
+    (function () {
+      var v = document.getElementById('montage');
+      if (!v) return;
+      var hdr = v.closest('header');
+      v.addEventListener('loadeddata', function () { hdr.classList.add('has-montage'); });
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) { v.play().catch(function () {}); } else { v.pause(); }
+          });
+        }, { threshold: 0.1 }).observe(v);
+      }
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/admin-auth.js"></script>
   <script src="assets/js/videos.js"></script>
