@@ -1,83 +1,376 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>trollrunner-videos</title>
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: Arial, sans-serif;
-        background: #07080d;
-        color: #fff;
-      }
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Troll Runner — Videos</title>
+<meta name="description" content="Troll Runner video drops. Pixel-nostalgic. Organized by topic. Drive, X & TikTok." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#0b0b1a;
+  --bg-2:#13122b;
+  --panel:#1a1838;
+  --panel-2:#211f47;
+  --ink:#e8e6ff;
+  --dim:#9b97c9;
+  --line:#3a3470;
+  --green:#39ff14;
+  --magenta:#ff2e88;
+  --cyan:#00e5ff;
+  --amber:#ffcb2e;
+  --drive:#34c759;
+  --x:#e8e6ff;
+  --tiktok:#ff2e88;
+  --pixel: 'Press Start 2P', monospace;
+  --body: 'VT323', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--body);
+  font-size:20px;
+  line-height:1.25;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 12% -10%, #2a1d63 0%, transparent 45%),
+    radial-gradient(circle at 90% 0%, #5a1342 0%, transparent 40%),
+    var(--bg);
+  background-attachment:fixed;
+  image-rendering:pixelated;
+  -webkit-font-smoothing:none;
+}
+/* CRT scanline + flicker overlay */
+body::after{
+  content:"";
+  position:fixed; inset:0; z-index:9000; pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0, rgba(0,0,0,.16) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode:multiply;
+  animation:flicker 4s infinite steps(60);
+}
+@keyframes flicker{ 0%,100%{opacity:.85} 50%{opacity:1} }
+@media (prefers-reduced-motion: reduce){ body::after{animation:none} }
 
-      header {
-        padding: 24px 18px;
-        text-align: center;
-        border-bottom: 1px solid rgba(255,255,255,0.16);
-      }
+a{color:var(--cyan);text-decoration:none}
+button{font-family:var(--pixel);cursor:pointer}
 
-      .site-nav {
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 18px;
-      }
+.pixel-box{
+  background:var(--panel);
+  border:3px solid var(--line);
+  box-shadow:0 0 0 3px #0b0b1a, 6px 6px 0 0 rgba(0,0,0,.55);
+}
 
-      .site-nav a {
-        border: 1px solid rgba(255,255,255,0.22);
-        border-radius: 999px;
-        background: rgba(255,255,255,0.08);
-        color: #fff;
-        padding: 8px 14px;
-        font-size: 12px;
-        font-weight: 700;
-        text-decoration: none;
-      }
+/* ── HEADER / MONTAGE HERO ── */
+header{
+  position:relative;
+  min-height:clamp(380px,64vh,700px);
+  display:flex; align-items:center; justify-content:center;
+  padding:48px 18px;
+  text-align:center;
+  border-bottom:3px solid var(--line);
+  background:linear-gradient(180deg,#161433,#0b0b1a);
+  overflow:hidden;
+}
+/* full-bleed montage (DeGods-style) */
+.montage{ position:absolute; inset:0; z-index:0; }
+.montage-vid{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; opacity:0; transition:opacity .6s ease;
+}
+header.has-montage .montage-vid{ opacity:1; }
+header.has-montage .montage-ph{ opacity:0; }
+.montage-ph{
+  position:absolute; inset:0; transition:opacity .6s ease;
+  display:flex; align-items:center; justify-content:center;
+  background:
+    repeating-linear-gradient(115deg,#16142e 0 40px,#1b1840 40px 80px),
+    radial-gradient(circle at 28% 25%, #3a1d63, transparent 55%),
+    radial-gradient(circle at 82% 75%, #5a1342, transparent 55%);
+  background-size:240% 240%, cover, cover;
+  animation:montage-pan 16s linear infinite;
+}
+@keyframes montage-pan{ from{background-position:0 0,0 0,0 0} to{background-position:240% 0,0 0,0 0} }
+@media (prefers-reduced-motion: reduce){ .montage-ph{ animation:none; } }
+.montage-ph .film{
+  position:absolute; left:0; right:0; height:22px; opacity:.7;
+  background:repeating-linear-gradient(90deg,#000 0 18px,#2a2750 18px 26px);
+}
+.montage-ph .film.top{ top:0; } .montage-ph .film.bottom{ bottom:0; }
+.montage-ph-label{
+  font-family:var(--pixel); font-size:clamp(9px,1.7vw,13px); color:var(--amber);
+  letter-spacing:1px; text-shadow:2px 2px 0 #000;
+  padding:12px 16px; border:3px dashed var(--line); background:rgba(0,0,0,.4);
+}
+.montage-scrim{
+  position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(11,11,26,.5) 0%, rgba(11,11,26,.25) 38%, rgba(11,11,26,.9) 100%);
+}
+.header-inner{ position:relative; z-index:2; }
+.scroll-cue{ margin-top:18px; font-family:var(--pixel); font-size:10px; color:var(--cyan); animation:bob 1.6s ease-in-out infinite; }
+@keyframes bob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+@media (prefers-reduced-motion: reduce){ .scroll-cue{ animation:none; } }
 
-      .site-nav a:hover {
-        background: rgba(255,255,255,0.16);
-      }
+.troll{ font-size:34px; filter:drop-shadow(0 0 6px var(--green)); }
+h1{
+  font-family:var(--pixel);
+  font-size:clamp(16px,4.4vw,30px);
+  line-height:1.4;
+  letter-spacing:1px;
+  color:var(--green);
+  text-shadow:3px 3px 0 #0b0b1a, 0 0 14px rgba(57,255,20,.4);
+  margin:10px 0 6px;
+}
+h1 .arrow{color:var(--magenta)}
+.tag-line{font-size:22px;color:var(--amber);letter-spacing:1px}
+.marquee{
+  margin-top:14px; border-top:3px dotted var(--line); border-bottom:3px dotted var(--line);
+  overflow:hidden; white-space:nowrap;
+}
+.marquee span{
+  display:inline-block; padding:6px 0; font-family:var(--pixel); font-size:11px; color:var(--cyan);
+  animation:scroll 18s linear infinite;
+}
+@keyframes scroll{ from{transform:translateX(40%)} to{transform:translateX(-100%)} }
 
-      h1 {
-        margin: 0;
-        font-size: clamp(2rem, 7vw, 4rem);
-        line-height: 1;
-        text-transform: uppercase;
-      }
+nav.site-nav{ display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin-top:16px; }
+nav.site-nav a, .btn{
+  font-family:var(--pixel); font-size:10px; color:var(--ink);
+  background:var(--panel-2); border:2px solid var(--line);
+  padding:9px 12px; box-shadow:3px 3px 0 0 rgba(0,0,0,.5);
+}
+nav.site-nav a:hover, .btn:hover{ background:var(--line); color:#fff; }
+.btn.accent{ background:var(--magenta); color:#0b0b1a; border-color:#ff7ab3; }
+.btn.green{ background:var(--green); color:#06280a; border-color:#9affb0; }
+.btn:active{ transform:translate(2px,2px); box-shadow:1px 1px 0 0 rgba(0,0,0,.5); }
 
-      .text-view-note {
-        margin: 12px auto 0;
-        color: #fff;
-        font-size: 12px;
-        font-weight: 700;
-        line-height: 1.35;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.55);
-      }
+/* ── CONTROLS ── */
+main{ width:min(1120px, calc(100% - 28px)); margin:24px auto 60px; }
+.toolbar{
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  padding:14px; margin-bottom:18px;
+}
+.toolbar .left, .toolbar .right{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.search{
+  font-family:var(--body); font-size:20px; color:var(--ink);
+  background:#0b0b1a; border:2px solid var(--line); padding:7px 10px; min-width:180px;
+}
+.search::placeholder{color:var(--dim)}
 
-      main {
-        width: min(760px, calc(100% - 36px));
-        margin: 28px auto;
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <h1>trollrunner-videos</h1>
-      <p class="text-view-note">Recommended text view be 50% for mobile and 100% tablet devices</p>
+.filter-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; align-items:center; }
+.filter-label{ font-family:var(--pixel); font-size:10px; color:var(--dim); margin-right:4px; }
+.chip{
+  font-family:var(--pixel); font-size:10px; color:var(--ink);
+  background:var(--panel); border:2px solid var(--line); padding:7px 9px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.chip:hover{ border-color:var(--cyan); }
+.chip.active{ background:var(--cyan); color:#03252b; border-color:#9af3ff; }
+.chip.topic.active{ background:var(--amber); color:#3a2a00; border-color:#ffe49a; }
+.chip .x{ color:var(--magenta); font-weight:bold; cursor:pointer; }
+.chip.active .x{ color:#03252b; }
+
+/* ── TOPIC SECTIONS ── */
+.topic-sec{ margin:30px 0; }
+.topic-head{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.topic-head h2{
+  font-family:var(--pixel); font-size:14px; color:var(--magenta);
+  text-shadow:2px 2px 0 #0b0b1a; letter-spacing:1px;
+}
+.topic-head .rule{ flex:1; height:0; border-top:3px dashed var(--line); }
+.topic-head .count{ font-family:var(--pixel); font-size:10px; color:var(--dim); }
+
+.grid{ display:grid; gap:18px; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }
+
+.card{ padding:12px; display:flex; flex-direction:column; gap:10px; }
+.media{
+  position:relative; width:100%; min-height:140px;
+  background:#000; border:2px solid var(--line); overflow:hidden;
+}
+.media.ratio{ aspect-ratio:16/9; }
+.media.ratio.portrait{ aspect-ratio:9/16; }
+.media.ratio iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+.media.embed{ display:flex; justify-content:center; align-items:flex-start; }
+.media.embed iframe, .media.embed blockquote, .media.embed twitter-widget{ max-width:100% !important; margin:0 !important; }
+.poster{
+  position:absolute; inset:0; display:flex; flex-direction:column; gap:10px;
+  align-items:center; justify-content:center; cursor:pointer; text-align:center; padding:10px;
+  background:repeating-linear-gradient(45deg,#16142e,#16142e 8px,#1c1940 8px,#1c1940 16px);
+  color:var(--ink);
+}
+.poster .play{
+  font-family:var(--pixel); font-size:13px; color:#0b0b1a; background:var(--green);
+  border:2px solid #9affb0; padding:10px 14px; box-shadow:3px 3px 0 rgba(0,0,0,.5);
+}
+.poster:hover .play{ background:var(--cyan); border-color:#9af3ff; }
+.poster .src-emoji{ font-size:30px; }
+.poster .ld{ font-family:var(--pixel); font-size:9px; color:var(--amber); }
+
+.card .title{ font-size:22px; line-height:1.1; color:var(--ink); }
+.badge{
+  font-family:var(--pixel); font-size:8px; padding:5px 7px; border:2px solid #000;
+  align-self:flex-start; color:#0b0b1a;
+}
+.badge.drive{ background:var(--drive); }
+.badge.x{ background:#fff; }
+.badge.tiktok{ background:var(--tiktok); color:#fff; border-color:#000; }
+
+.card-tags{ display:flex; flex-wrap:wrap; gap:6px; }
+.tag{
+  font-family:var(--pixel); font-size:8px; color:var(--cyan);
+  background:#0b0b1a; border:2px solid var(--line); padding:5px 7px;
+  display:inline-flex; align-items:center; gap:5px; cursor:pointer;
+}
+.tag:hover{ border-color:var(--cyan); }
+.tag .rm{ color:var(--magenta); font-weight:bold; }
+.tag.add{ color:var(--amber); border-style:dashed; }
+
+.card-foot{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:2px; }
+.card-foot .open{ font-family:var(--pixel); font-size:8px; }
+.icon-btn{
+  font-family:var(--pixel); font-size:9px; background:var(--panel-2); color:var(--ink);
+  border:2px solid var(--line); padding:6px 8px;
+}
+.icon-btn.danger:hover{ background:var(--magenta); color:#0b0b1a; border-color:#ff7ab3; }
+
+.admin-only{ display:none !important; }
+body.is-admin .admin-only{ display:inline-flex !important; }
+
+.empty{ text-align:center; padding:50px 18px; color:var(--dim); font-size:22px; }
+.empty .big{ font-family:var(--pixel); font-size:14px; color:var(--amber); display:block; margin-bottom:12px; }
+
+/* ── MODAL ── */
+.modal-back{
+  position:fixed; inset:0; z-index:9500; display:none;
+  background:rgba(3,2,12,.8); align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto;
+}
+.modal-back.open{ display:flex; }
+.modal{ width:min(560px,100%); padding:20px; }
+.modal h3{ font-family:var(--pixel); font-size:14px; color:var(--green); margin-bottom:16px; }
+.field{ margin-bottom:14px; }
+.field label{ font-family:var(--pixel); font-size:9px; color:var(--dim); display:block; margin-bottom:6px; }
+.field input{ width:100%; font-family:var(--body); font-size:20px; color:var(--ink); background:#0b0b1a; border:2px solid var(--line); padding:9px 10px; }
+.field .hint{ font-size:16px; color:var(--dim); margin-top:5px; }
+.detected{ font-family:var(--pixel); font-size:9px; margin-top:6px; }
+.modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+.status{ font-family:var(--pixel); font-size:9px; min-height:14px; margin-top:6px; line-height:1.6; }
+.status.error{ color:var(--magenta); }
+.status.ok{ color:var(--green); }
+
+footer{ text-align:center; padding:26px 16px 50px; color:var(--dim); font-size:18px; }
+footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
+</style>
+</head>
+<body>
+  <header>
+    <!-- ── MONTAGE HERO ──────────────────────────────────────────────
+         Drop your edit at assets/montage.mp4 (muted/looping autoplay).
+         Until the file exists, the animated placeholder below shows.
+    -->
+    <div class="montage" aria-hidden="true">
+      <div class="montage-ph">
+        <div class="film top"></div>
+        <div class="montage-ph-label">▣ TROLL MONTAGE — COMING SOON ▣</div>
+        <div class="film bottom"></div>
+      </div>
+      <video id="montage" class="montage-vid" autoplay muted loop playsinline preload="auto">
+        <source src="assets/montage.mp4" type="video/mp4" />
+      </video>
+      <div class="montage-scrim"></div>
+    </div>
+
+    <div class="header-inner">
+      <div class="troll">🧌</div>
+      <h1>TROLLRUNNER <span class="arrow">▶</span> VIDEOS</h1>
+      <div class="tag-line">drops on tape. organized by topic.</div>
+      <div class="marquee"><span>★ DRIVE ★ X ★ TIKTOK ★ INSERT COIN TO CONTINUE ★ TROLL RUNS THE INLAND EMPIRE ★ DRIVE ★ X ★ TIKTOK ★</span></div>
       <nav class="site-nav" aria-label="Site links">
-        <a href="https://trollrunner.net">Main Site</a>
+        <a href="https://trollrunner.net">MAIN SITE</a>
+        <a href="https://games.trollrunner.net">GAMES</a>
+        <a href="https://stickers.trollrunner.net">STICKERS</a>
       </nav>
-    </header>
-    <main>
-      <p>GitHub Pages site for videos.trollrunner.net</p>
-    </main>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://mayurski-art.github.io/assets/js/troll-notis.js"></script>
-    <script src="assets/js/site-lock.js"></script>
-    <script src="assets/js/admin-auth.js"></script>
-  </body>
+      <div class="scroll-cue">▼ THE DROPS ▼</div>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar pixel-box">
+      <div class="left">
+        <input id="search" class="search" type="search" placeholder="search videos…" aria-label="Search videos" />
+      </div>
+      <div class="right">
+        <button id="admin-toggle" class="btn" type="button">🔓 ADMIN</button>
+        <button id="add-video" class="btn green admin-only" type="button">＋ ADD VIDEO</button>
+      </div>
+    </div>
+
+    <div class="filter-row" id="topic-filters" aria-label="Filter by topic">
+      <span class="filter-label">TOPIC</span>
+    </div>
+    <div class="filter-row" id="tag-filters" aria-label="Filter by tag">
+      <span class="filter-label">TAGS</span>
+    </div>
+
+    <div id="catalog" aria-live="polite"></div>
+  </main>
+
+  <!-- ADD VIDEO MODAL -->
+  <div class="modal-back" id="modal-back">
+    <div class="modal pixel-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h3 id="modal-title">＋ ADD VIDEO</h3>
+      <div class="field">
+        <label for="f-url">VIDEO LINK</label>
+        <input id="f-url" type="url" placeholder="paste Drive / X / TikTok link" />
+        <div class="hint">Drive: set the file to “Anyone with the link” first.</div>
+        <div class="detected" id="f-detected"></div>
+      </div>
+      <div class="field">
+        <label for="f-title">TITLE</label>
+        <input id="f-title" type="text" placeholder="give it a name" />
+      </div>
+      <div class="field">
+        <label for="f-topic">TOPIC</label>
+        <input id="f-topic" list="topic-list" placeholder="e.g. Runs, Bloopers, Drops" />
+        <datalist id="topic-list"></datalist>
+      </div>
+      <div class="field">
+        <label for="f-tags">TAGS (comma separated)</label>
+        <input id="f-tags" type="text" placeholder="inland-empire, sticker-drop" />
+      </div>
+      <div class="status" id="modal-status"></div>
+      <div class="modal-actions">
+        <button class="btn" id="modal-cancel" type="button">CANCEL</button>
+        <button class="btn green" id="modal-save" type="button">SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div>made for the troll. <span class="troll">🧌</span></div>
+    <div class="pixel">© TROLLRUNNER • PRESS START</div>
+  </footer>
+
+  <script>
+    // Montage hero: reveal the video only once it actually loads; otherwise
+    // the animated placeholder stays. Pause when scrolled offscreen.
+    (function () {
+      var v = document.getElementById('montage');
+      if (!v) return;
+      var hdr = v.closest('header');
+      v.addEventListener('loadeddata', function () { hdr.classList.add('has-montage'); });
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) { v.play().catch(function () {}); } else { v.pause(); }
+          });
+        }, { threshold: 0.1 }).observe(v);
+      }
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://mayurski-art.github.io/assets/js/troll-notis.js"></script>
+  <script src="assets/js/admin-auth.js"></script>
+  <script src="assets/js/videos.js"></script>
+</body>
 </html>
