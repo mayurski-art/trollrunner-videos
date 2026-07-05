@@ -15,6 +15,18 @@
     }, extra || {});
   }
 
+  // Writes now require a real admin session -- see supabase/videos.sql,
+  // which gates insert/update/delete on troll_is_admin() (shared with the
+  // main site's assets/supabase/troll_admin_lockdown.sql, same project).
+  async function adminHeaders(extra) {
+    const base = headers(extra);
+    try {
+      const token = await window.TrollrunnerAdminAuth?.getAccessToken?.();
+      if (token) base.Authorization = `Bearer ${token}`;
+    } catch {}
+    return base;
+  }
+
   // ── State ──
   let VIDEOS = [];
   const state = { topic: 'all', tag: null, search: '' };
@@ -57,7 +69,7 @@
   async function insertVideo(row) {
     const res = await fetch(REST, {
       method: 'POST',
-      headers: headers({ Prefer: 'return=representation' }),
+      headers: await adminHeaders({ Prefer: 'return=representation' }),
       body: JSON.stringify([row]),
     });
     if (!res.ok) throw new Error(`Save failed (${res.status}) — ${await res.text()}`);
@@ -67,7 +79,7 @@
   async function patchVideo(id, patch) {
     const res = await fetch(`${REST}?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      headers: headers({ Prefer: 'return=representation' }),
+      headers: await adminHeaders({ Prefer: 'return=representation' }),
       body: JSON.stringify(patch),
     });
     if (!res.ok) throw new Error(`Update failed (${res.status})`);
@@ -77,7 +89,7 @@
   async function deleteVideo(id) {
     const res = await fetch(`${REST}?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      headers: headers(),
+      headers: await adminHeaders(),
     });
     if (!res.ok) throw new Error(`Delete failed (${res.status})`);
   }
