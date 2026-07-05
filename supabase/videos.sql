@@ -41,17 +41,3 @@ create policy "videos anon update" on public.videos
 drop policy if exists "videos anon delete" on public.videos;
 create policy "videos anon delete" on public.videos
   for delete using (true);
-
--- Seed the first real drop (title pulled from Google Drive).
-insert into public.videos (title, topic, source, url, external_id, tags, position)
-values
-  (
-    'Shilling $TROLL to local businesses, Part 1',
-    '$TROLL',
-    'drive',
-    'https://drive.google.com/file/d/1PtvtsNYdlVTyEu_J1EwDBuLxFbGUwDiB/view?usp=sharing',
-    '1PtvtsNYdlVTyEu_J1EwDBuLxFbGUwDiB',
-    array['shilling','local-business'],
-    0
-  )
-on conflict do nothing;
