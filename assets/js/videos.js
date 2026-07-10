@@ -277,6 +277,9 @@
     const open = el('a', 'open', 'OPEN ↗');
     open.href = video.url; open.target = '_blank'; open.rel = 'noopener';
     foot.appendChild(open);
+    const editTopic = el('button', 'icon-btn admin-only', '✎ TOPIC');
+    editTopic.addEventListener('click', () => promptEditTopic(video));
+    foot.appendChild(editTopic);
     const del = el('button', 'icon-btn danger admin-only', '🗑 DELETE');
     del.addEventListener('click', () => onDelete(video));
     foot.appendChild(del);
@@ -304,6 +307,18 @@
     try {
       await patchVideo(video.id, { tags: next });
       video.tags = next;
+      renderAll();
+    } catch (e) { alert(e.message); }
+  }
+
+  async function promptEditTopic(video) {
+    const input = window.prompt('Move this video to which topic (group)?', video.topic || 'Uncategorized');
+    if (input == null) return;
+    const topic = input.trim() || 'Uncategorized';
+    if (topic === video.topic) return;
+    try {
+      await patchVideo(video.id, { topic });
+      video.topic = topic;
       renderAll();
     } catch (e) { alert(e.message); }
   }

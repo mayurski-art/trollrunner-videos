@@ -98,11 +98,6 @@ header.has-montage .montage-ph{ opacity:0; }
   background:repeating-linear-gradient(90deg,#000 0 18px,#2a2750 18px 26px);
 }
 .montage-ph .film.top{ top:0; } .montage-ph .film.bottom{ bottom:0; }
-.montage-ph-label{
-  font-family:var(--pixel); font-size:clamp(9px,1.7vw,13px); color:var(--amber);
-  letter-spacing:1px; text-shadow:2px 2px 0 #000;
-  padding:12px 16px; border:3px dashed var(--line); background:rgba(0,0,0,.4);
-}
 .montage-scrim{
   position:absolute; inset:0;
   background:linear-gradient(180deg, rgba(11,11,26,.5) 0%, rgba(11,11,26,.25) 38%, rgba(11,11,26,.9) 100%);
@@ -292,7 +287,6 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
     <div class="montage" aria-hidden="true">
       <div class="montage-ph">
         <div class="film top"></div>
-        <div class="montage-ph-label">▣ TROLL MONTAGE — COMING SOON ▣</div>
         <div class="film bottom"></div>
       </div>
       <video id="montage" class="montage-vid" autoplay muted loop playsinline preload="auto">
