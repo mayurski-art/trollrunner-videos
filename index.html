@@ -108,9 +108,6 @@ header.has-montage .montage-ph{ opacity:0; }
   background:linear-gradient(180deg, rgba(11,11,26,.5) 0%, rgba(11,11,26,.25) 38%, rgba(11,11,26,.9) 100%);
 }
 .header-inner{ position:relative; z-index:2; }
-.scroll-cue{ margin-top:18px; font-family:var(--pixel); font-size:10px; color:var(--cyan); animation:bob 1.6s ease-in-out infinite; }
-@keyframes bob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
-@media (prefers-reduced-motion: reduce){ .scroll-cue{ animation:none; } }
 
 .troll{ font-size:34px; filter:drop-shadow(0 0 6px var(--green)); }
 h1{
@@ -124,17 +121,8 @@ h1{
 }
 h1 .arrow{color:var(--magenta)}
 .tag-line{font-size:22px;color:var(--amber);letter-spacing:1px}
-.marquee{
-  margin-top:14px; border-top:3px dotted var(--line); border-bottom:3px dotted var(--line);
-  overflow:hidden; white-space:nowrap;
-}
-.marquee span{
-  display:inline-block; padding:6px 0; font-family:var(--pixel); font-size:11px; color:var(--cyan);
-  animation:scroll 18s linear infinite;
-}
-@keyframes scroll{ from{transform:translateX(40%)} to{transform:translateX(-100%)} }
 
-nav.site-nav{ display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin-top:16px; }
+nav.site-nav{ display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin-top:22px; }
 nav.site-nav a, .btn{
   font-family:var(--pixel); font-size:10px; color:var(--ink);
   background:var(--panel-2); border:2px solid var(--line);
@@ -225,20 +213,28 @@ main{ width:min(1120px, calc(100% - 28px)); margin:24px auto 60px; }
   position:absolute; inset:0; display:flex; flex-direction:column; gap:10px;
   align-items:center; justify-content:center; cursor:pointer; text-align:center; padding:10px;
   background:repeating-linear-gradient(45deg,#16142e,#16142e 8px,#1c1940 8px,#1c1940 16px);
+  background-size:cover; background-position:center; background-repeat:no-repeat;
   color:var(--ink);
+}
+.poster.has-thumb::before{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(11,11,26,.15) 0%, rgba(11,11,26,.65) 100%);
 }
 .poster .play{
   font-family:var(--pixel); font-size:13px; color:#0b0b1a; background:var(--green);
   border:2px solid #9affb0; padding:10px 14px; box-shadow:3px 3px 0 rgba(0,0,0,.5);
+  position:relative; z-index:1;
 }
 .poster:hover .play{ background:var(--cyan); border-color:#9af3ff; }
-.poster .src-emoji{ font-size:30px; }
-.poster .ld{ font-family:var(--pixel); font-size:9px; color:var(--amber); }
 
-.card .title{ font-size:22px; line-height:1.1; color:var(--ink); }
+.card-head{ display:flex; align-items:center; gap:8px; }
+.card .title{
+  font-size:22px; line-height:1.1; color:var(--ink);
+  flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 .badge{
   font-family:var(--pixel); font-size:8px; padding:5px 7px; border:2px solid #000;
-  align-self:flex-start; color:#0b0b1a;
+  flex:none; color:#0b0b1a;
 }
 .badge.drive{ background:var(--drive); }
 .badge.x{ background:#fff; }
@@ -311,14 +307,12 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
     <div class="header-inner">
       <div class="troll">🧌</div>
       <h1>TROLLRUNNER <span class="arrow">▶</span> VIDEOS</h1>
-      <div class="tag-line">drops on tape. organized by topic.</div>
-      <div class="marquee"><span>★ DRIVE ★ X ★ TIKTOK ★ INSERT COIN TO CONTINUE ★ TROLL RUNS THE INLAND EMPIRE ★ DRIVE ★ X ★ TIKTOK ★</span></div>
+      <div class="tag-line">drops on tape.</div>
       <nav class="site-nav" aria-label="Site links">
         <a href="https://trollrunner.net">MAIN SITE</a>
         <a href="https://games.trollrunner.net">GAMES</a>
         <a href="https://stickers.trollrunner.net">STICKERS</a>
       </nav>
-      <div class="scroll-cue">▼ THE DROPS ▼</div>
     </div>
   </header>
 
@@ -375,8 +369,7 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
   </div>
 
   <footer>
-    <div>made for the troll. <span class="troll">🧌</span></div>
-    <div class="pixel">© TROLLRUNNER • PRESS START</div>
+    <div class="pixel">🧌 TROLLRUNNER VIDEOS</div>
   </footer>
 
   <script>

@@ -185,6 +185,44 @@
     }
   }
 
+  // ── Thumbnails (lazy, cached) ──
+  const thumbCache = new Map();
+  async function fetchThumb(video) {
+    const key = `${video.source}:${video.external_id || video.url}`;
+    if (thumbCache.has(key)) return thumbCache.get(key);
+    const p = (async () => {
+      try {
+        if (video.source === 'drive' && video.external_id) {
+          return `https://drive.google.com/thumbnail?id=${video.external_id}&sz=w640`;
+        }
+        if (video.source === 'tiktok') {
+          const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(video.url)}`);
+          if (!res.ok) return null;
+          const j = await res.json();
+          return j.thumbnail_url || null;
+        }
+        if (video.source === 'x' && video.external_id) {
+          const res = await fetch(`https://api.vxtwitter.com/Twitter/status/${video.external_id}`);
+          if (!res.ok) return null;
+          const j = await res.json();
+          return (j.media_extended && j.media_extended[0] && j.media_extended[0].thumbnail_url)
+            || (j.mediaURLs && j.mediaURLs[0])
+            || null;
+        }
+      } catch { /* thumbnail is a nice-to-have, never block on it */ }
+      return null;
+    })();
+    thumbCache.set(key, p);
+    return p;
+  }
+  function attachThumbnail(poster, video) {
+    fetchThumb(video).then((url) => {
+      if (!url || !poster.isConnected) return;
+      poster.style.backgroundImage = `url("${url}")`;
+      poster.classList.add('has-thumb');
+    });
+  }
+
   // ── Card ──
   function el(tag, cls, html) {
     const n = document.createElement(tag);
@@ -200,16 +238,18 @@
     const portrait = video.source === 'tiktok';
     const media = el('div', `media ratio${portrait ? ' portrait' : ''}`);
     const poster = el('div', 'poster');
-    poster.innerHTML =
-      `<div class="src-emoji">${meta.emoji}</div>` +
-      `<button class="play" type="button">▶ PLAY</button>` +
-      `<div class="ld">${meta.label}</div>`;
+    poster.innerHTML = `<button class="play" type="button">▶ PLAY</button>`;
     poster.addEventListener('click', () => loadEmbed(media, video));
     media.appendChild(poster);
     card.appendChild(media);
+    attachThumbnail(poster, video);
 
-    card.appendChild(el('div', `badge ${video.source}`, meta.label));
-    card.appendChild(el('div', 'title', escapeHtml(video.title || 'Untitled')));
+    const head = el('div', 'card-head');
+    head.appendChild(el('div', `badge ${video.source}`, meta.label));
+    const titleEl = el('div', 'title', escapeHtml(video.title || 'Untitled'));
+    titleEl.title = video.title || 'Untitled';
+    head.appendChild(titleEl);
+    card.appendChild(head);
 
     // Tags
     const tagWrap = el('div', 'card-tags');
