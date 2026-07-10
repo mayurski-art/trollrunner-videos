@@ -138,14 +138,28 @@
     if (video.source === 'x') {
       media.classList.remove('ratio', 'portrait');
       media.classList.add('embed');
+
+      const skeleton = el('div', 'tweet-skeleton');
+      skeleton.innerHTML =
+        `<div class="top"><div class="row avatar"></div>` +
+        `<div class="col"><div class="row w60"></div><div class="row w90"></div></div></div>` +
+        `<div class="row full"></div>`;
+      media.appendChild(skeleton);
+
       const bq = document.createElement('blockquote');
       bq.className = 'twitter-tweet';
       bq.setAttribute('data-theme', 'dark');
       bq.setAttribute('data-dnt', 'true');
       bq.innerHTML = `<a href="${video.url}"></a>`;
       media.appendChild(bq);
+
+      const clearSkeleton = () => skeleton.remove();
       loadScriptOnce('twitter-wjs', 'https://platform.twitter.com/widgets.js').then(() => {
-        if (window.twttr && window.twttr.widgets) window.twttr.widgets.load(media);
+        if (window.twttr && window.twttr.widgets) {
+          window.twttr.widgets.load(media).then(clearSkeleton).catch(clearSkeleton);
+        } else {
+          clearSkeleton();
+        }
       });
       return;
     }

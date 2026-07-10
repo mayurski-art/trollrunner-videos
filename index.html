@@ -191,8 +191,36 @@ main{ width:min(1120px, calc(100% - 28px)); margin:24px auto 60px; }
 .media.ratio{ aspect-ratio:16/9; }
 .media.ratio.portrait{ aspect-ratio:9/16; }
 .media.ratio iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
-.media.embed{ display:flex; justify-content:center; align-items:flex-start; }
+.media.embed{
+  display:flex; justify-content:center; align-items:flex-start;
+  max-height:460px; overflow-y:auto; padding:14px 10px;
+  scrollbar-color:var(--line) var(--bg); scrollbar-width:thin;
+}
 .media.embed iframe, .media.embed blockquote, .media.embed twitter-widget{ max-width:100% !important; margin:0 !important; }
+.media.embed::-webkit-scrollbar{ width:10px; }
+.media.embed::-webkit-scrollbar-track{ background:var(--bg); }
+.media.embed::-webkit-scrollbar-thumb{ background:var(--line); border:2px solid var(--bg); }
+.media.embed twitter-widget{ animation:tweet-in .35s ease; }
+@keyframes tweet-in{ from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)} }
+@media (prefers-reduced-motion: reduce){ .media.embed twitter-widget{ animation:none; } }
+
+/* Tweet loading skeleton — covers the gap between "poster removed" and
+   "Twitter's widget.js has actually rendered an iframe" so nothing raw flashes. */
+.tweet-skeleton{
+  position:absolute; inset:0; z-index:2; background:var(--panel);
+  display:flex; flex-direction:column; gap:10px; padding:16px;
+}
+.tweet-skeleton .top{ display:flex; gap:10px; align-items:center; }
+.tweet-skeleton .col{ flex:1; display:flex; flex-direction:column; gap:6px; }
+.tweet-skeleton .row{
+  height:14px; border-radius:2px;
+  background:linear-gradient(90deg, var(--panel-2) 25%, var(--line) 50%, var(--panel-2) 75%);
+  background-size:200% 100%; animation:shimmer 1.4s infinite;
+}
+.tweet-skeleton .row.avatar{ width:40px; height:40px; flex:none; }
+.tweet-skeleton .row.w60{ width:60%; } .tweet-skeleton .row.w90{ width:90%; } .tweet-skeleton .row.full{ width:100%; height:120px; }
+@keyframes shimmer{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@media (prefers-reduced-motion: reduce){ .tweet-skeleton .row{ animation:none; } }
 .poster{
   position:absolute; inset:0; display:flex; flex-direction:column; gap:10px;
   align-items:center; justify-content:center; cursor:pointer; text-align:center; padding:10px;
