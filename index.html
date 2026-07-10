@@ -109,7 +109,6 @@ header.has-montage .montage-ph{ opacity:0; }
 }
 .header-inner{ position:relative; z-index:2; }
 
-.troll{ font-size:34px; filter:drop-shadow(0 0 6px var(--green)); }
 h1{
   font-family:var(--pixel);
   font-size:clamp(16px,4.4vw,30px);
@@ -120,15 +119,13 @@ h1{
   margin:10px 0 6px;
 }
 h1 .arrow{color:var(--magenta)}
-.tag-line{font-size:22px;color:var(--amber);letter-spacing:1px}
 
-nav.site-nav{ display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin-top:22px; }
-nav.site-nav a, .btn{
+.btn{
   font-family:var(--pixel); font-size:10px; color:var(--ink);
   background:var(--panel-2); border:2px solid var(--line);
   padding:9px 12px; box-shadow:3px 3px 0 0 rgba(0,0,0,.5);
 }
-nav.site-nav a:hover, .btn:hover{ background:var(--line); color:#fff; }
+.btn:hover{ background:var(--line); color:#fff; }
 .btn.accent{ background:var(--magenta); color:#0b0b1a; border-color:#ff7ab3; }
 .btn.green{ background:var(--green); color:#06280a; border-color:#9affb0; }
 .btn:active{ transform:translate(2px,2px); box-shadow:1px 1px 0 0 rgba(0,0,0,.5); }
@@ -305,14 +302,7 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
     </div>
 
     <div class="header-inner">
-      <div class="troll">🧌</div>
       <h1>TROLLRUNNER <span class="arrow">▶</span> VIDEOS</h1>
-      <div class="tag-line">drops on tape.</div>
-      <nav class="site-nav" aria-label="Site links">
-        <a href="https://trollrunner.net">MAIN SITE</a>
-        <a href="https://games.trollrunner.net">GAMES</a>
-        <a href="https://stickers.trollrunner.net">STICKERS</a>
-      </nav>
     </div>
   </header>
 
@@ -369,7 +359,7 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
   </div>
 
   <footer>
-    <div class="pixel">🧌 TROLLRUNNER VIDEOS</div>
+    <div class="pixel">TROLLRUNNER VIDEOS</div>
   </footer>
 
   <script>
