@@ -168,7 +168,20 @@
   // and goes straight to Supabase — it never appears in this file, in any
   // chat/session log, or on the network to anywhere else.
   //   TrollrunnerAdminAuth.bootstrapAdminAccount()
+  //
+  // Gated behind a localStorage flag so it isn't a one-shot console call for
+  // any visitor who reads this file — set the flag yourself first:
+  //   localStorage.setItem('trollrunner_dev_tools', '1')
+  const DEV_TOOLS_FLAG = 'trollrunner_dev_tools';
   async function bootstrapAdminAccount() {
+    if (localStorage.getItem(DEV_TOOLS_FLAG) !== '1') {
+      window.alert(
+        'This is a locked dev tool. In the console, run:\n\n'
+        + "localStorage.setItem('trollrunner_dev_tools', '1')\n\n"
+        + 'then call TrollrunnerAdminAuth.bootstrapAdminAccount() again.'
+      );
+      return false;
+    }
     const sb = getAuthClient();
     if (!sb) {
       window.alert('Supabase failed to load — refresh and try again.');

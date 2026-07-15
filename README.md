@@ -21,6 +21,13 @@ optimized) and commit. Until that file exists, an animated retro placeholder
 ("TROLL MONTAGE — COMING SOON") shows in its place — no code changes needed when
 you add the file.
 
+Optional extras, also drop-in with no code changes:
+- **`assets/montage.webm`** — a VP9/AV1 webm encode, tried first (smaller,
+  better quality-per-byte on browsers that support it); the mp4 is the
+  fallback.
+- **`assets/montage-poster.jpg`** — a single frame shown while the video is
+  still loading, instead of the plain background.
+
 ## One-time setup
 1. Open the Supabase project (`tjsyhfplxjtakdfkpdtg`) → SQL editor.
 2. Paste and run `supabase/videos.sql`. This creates the `videos` table,

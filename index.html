@@ -2,9 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://mayurski-art.github.io https://platform.twitter.com https://www.tiktok.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self'; connect-src 'self' https://tjsyhfplxjtakdfkpdtg.supabase.co wss://tjsyhfplxjtakdfkpdtg.supabase.co https://www.tiktok.com; frame-src https://drive.google.com https://platform.twitter.com https://www.tiktok.com https://syndication.twitter.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Troll Runner — Videos</title>
 <meta name="description" content="Troll Runner video drops. Pixel-nostalgic. Organized by topic. Drive, X & TikTok." />
+<meta property="og:title" content="Troll Runner — Videos" />
+<meta property="og:description" content="Troll Runner video drops. Pixel-nostalgic. Organized by topic. Drive, X & TikTok." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://videos.trollrunner.net/" />
+<!-- og:image intentionally omitted until assets/og-image.png exists -->
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Troll Runner — Videos" />
+<meta name="twitter:description" content="Troll Runner video drops. Pixel-nostalgic. Organized by topic. Drive, X & TikTok." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
@@ -162,6 +171,7 @@ main{ width:min(1120px, calc(100% - 28px)); margin:24px auto 60px; }
 .topic-head .count{ font-family:var(--pixel); font-size:10px; color:var(--dim); }
 
 .grid{ display:grid; gap:18px; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }
+.load-more{ display:block; margin:16px auto 0; }
 
 .card{ padding:12px; display:flex; flex-direction:column; gap:10px; }
 .media{
@@ -220,6 +230,9 @@ main{ width:min(1120px, calc(100% - 28px)); margin:24px auto 60px; }
 .poster:hover .play{ background:var(--cyan); border-color:#9af3ff; }
 
 .card-head{ display:flex; align-items:center; gap:8px; }
+.drag-handle{ cursor:grab; color:var(--dim); font-size:18px; line-height:1; flex:none; user-select:none; }
+.drag-handle:active{ cursor:grabbing; }
+.card.dragging{ opacity:.4; }
 .card .title{
   font-size:22px; line-height:1.1; color:var(--ink);
   flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -274,6 +287,17 @@ body.is-admin .admin-only{ display:inline-flex !important; }
 .status.error{ color:var(--magenta); }
 .status.ok{ color:var(--green); }
 
+/* ── UNDO TOAST ── */
+.toast{
+  position:fixed; left:50%; bottom:24px; z-index:9600;
+  display:flex; align-items:center; gap:14px; padding:12px 16px;
+  opacity:0; pointer-events:none;
+  transform:translateX(-50%) translateY(20px);
+  transition:opacity .2s ease, transform .2s ease;
+}
+.toast.show{ opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
+.toast span{ font-size:19px; max-width:60vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
 footer{ text-align:center; padding:26px 16px 50px; color:var(--dim); font-size:18px; }
 footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
 </style>
@@ -289,7 +313,8 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
         <div class="film top"></div>
         <div class="film bottom"></div>
       </div>
-      <video id="montage" class="montage-vid" autoplay muted loop playsinline preload="auto">
+      <video id="montage" class="montage-vid" autoplay muted loop playsinline preload="auto" poster="assets/montage-poster.jpg">
+        <source src="assets/montage.webm" type="video/webm" />
         <source src="assets/montage.mp4" type="video/mp4" />
       </video>
       <div class="montage-scrim"></div>
@@ -352,6 +377,32 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
     </div>
   </div>
 
+  <!-- EDIT VIDEO MODAL (topic + tags) -->
+  <div class="modal-back" id="edit-modal-back">
+    <div class="modal pixel-box" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+      <h3 id="edit-modal-title">✎ EDIT VIDEO</h3>
+      <div class="field">
+        <label for="e-topic">TOPIC</label>
+        <input id="e-topic" list="topic-list" placeholder="e.g. Runs, Bloopers, Drops" />
+      </div>
+      <div class="field">
+        <label for="e-tags">TAGS (comma separated)</label>
+        <input id="e-tags" type="text" placeholder="inland-empire, sticker-drop" />
+      </div>
+      <div class="status" id="edit-modal-status"></div>
+      <div class="modal-actions">
+        <button class="btn" id="edit-modal-cancel" type="button">CANCEL</button>
+        <button class="btn green" id="edit-modal-save" type="button">SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE UNDO TOAST -->
+  <div class="toast pixel-box" id="undo-toast" role="status" aria-live="polite">
+    <span id="undo-toast-msg"></span>
+    <button class="btn" id="undo-toast-btn" type="button">UNDO</button>
+  </div>
+
   <footer>
     <div class="pixel">TROLLRUNNER VIDEOS</div>
   </footer>
@@ -373,7 +424,7 @@ footer .pixel{ font-family:var(--pixel); font-size:9px; color:var(--line); }
       }
     })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.3" integrity="sha384-uVefCux0Kf6w34gQVv8+jUPUwvwFUdnrcwI1kOJHs7sfPPXdDDucwcrPrppD6oUe" crossorigin="anonymous"></script>
   <script src="https://mayurski-art.github.io/assets/js/troll-notis.js"></script>
   <script src="assets/js/admin-auth.js"></script>
   <script src="assets/js/videos.js"></script>

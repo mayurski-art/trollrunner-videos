@@ -201,14 +201,9 @@
           const j = await res.json();
           return j.thumbnail_url || null;
         }
-        if (video.source === 'x' && video.external_id) {
-          const res = await fetch(`https://api.vxtwitter.com/Twitter/status/${video.external_id}`);
-          if (!res.ok) return null;
-          const j = await res.json();
-          return (j.media_extended && j.media_extended[0] && j.media_extended[0].thumbnail_url)
-            || (j.mediaURLs && j.mediaURLs[0])
-            || null;
-        }
+        // X/Twitter has no reliable first-party oEmbed thumbnail endpoint
+        // that allows CORS from a browser, so X cards just show the plain
+        // play poster until clicked — no third-party proxy dependency.
       } catch { /* thumbnail is a nice-to-have, never block on it */ }
       return null;
     })();
@@ -223,6 +218,58 @@
     });
   }
 
+  // ── Drag-to-reorder (admin only, within a topic) ──
+  let dragState = { id: null, topic: null };
+
+  function setupDragHandle(card, video) {
+    card.addEventListener('dragstart', (e) => {
+      if (!isAdmin()) { e.preventDefault(); return; }
+      dragState = { id: video.id, topic: video.topic || 'Uncategorized' };
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', video.id); } catch {}
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      const topic = dragState.topic;
+      dragState = { id: null, topic: null };
+      if (!topic) return;
+      const grid = card.closest('.grid');
+      if (!grid) return;
+      const orderedIds = Array.from(grid.querySelectorAll('.card')).map((c) => c.dataset.id);
+      persistReorder(topic, orderedIds);
+    });
+    card.addEventListener('dragover', (e) => {
+      if (!dragState.id || dragState.id === video.id) return;
+      if ((video.topic || 'Uncategorized') !== dragState.topic) return;
+      e.preventDefault();
+      const grid = card.closest('.grid');
+      const draggingEl = grid && grid.querySelector('.card.dragging');
+      if (!draggingEl || draggingEl === card) return;
+      const rect = card.getBoundingClientRect();
+      const insertBefore = e.clientX < rect.left + rect.width / 2;
+      grid.insertBefore(draggingEl, insertBefore ? card : card.nextSibling);
+    });
+    card.addEventListener('drop', (e) => e.preventDefault());
+  }
+
+  function persistReorder(topic, orderedIds) {
+    const byId = new Map(VIDEOS.map((v) => [v.id, v]));
+    const groupVideos = orderedIds.map((id) => byId.get(id)).filter(Boolean);
+    const updates = [];
+    groupVideos.forEach((v, i) => {
+      if (v.position !== i) {
+        v.position = i;
+        updates.push(patchVideo(v.id, { position: i }).catch(() => {}));
+      }
+    });
+    const firstIdx = VIDEOS.findIndex((v) => (v.topic || 'Uncategorized') === topic);
+    const rest = VIDEOS.filter((v) => (v.topic || 'Uncategorized') !== topic);
+    const insertAt = Math.min(firstIdx === -1 ? rest.length : firstIdx, rest.length);
+    VIDEOS = [...rest.slice(0, insertAt), ...groupVideos, ...rest.slice(insertAt)];
+    return Promise.all(updates);
+  }
+
   // ── Card ──
   function el(tag, cls, html) {
     const n = document.createElement(tag);
@@ -234,6 +281,8 @@
   function buildCard(video) {
     const meta = SRC_META[video.source] || SRC_META.drive;
     const card = el('div', 'card pixel-box');
+    card.dataset.id = video.id;
+    setupDragHandle(card, video);
 
     const portrait = video.source === 'tiktok';
     const media = el('div', `media ratio${portrait ? ' portrait' : ''}`);
@@ -245,6 +294,10 @@
     attachThumbnail(poster, video);
 
     const head = el('div', 'card-head');
+    const handle = el('span', 'drag-handle admin-only', '⠿');
+    handle.title = 'Drag to reorder within this topic';
+    handle.setAttribute('draggable', 'true');
+    head.appendChild(handle);
     head.appendChild(el('div', `badge ${video.source}`, meta.label));
     const titleEl = el('div', 'title', escapeHtml(video.title || 'Untitled'));
     titleEl.title = video.title || 'Untitled';
@@ -268,7 +321,7 @@
       tagWrap.appendChild(tag);
     });
     const addTag = el('span', 'tag add admin-only', '＋ tag');
-    addTag.addEventListener('click', () => promptAddTag(video));
+    addTag.addEventListener('click', () => openEditModal(video));
     tagWrap.appendChild(addTag);
     card.appendChild(tagWrap);
 
@@ -277,8 +330,8 @@
     const open = el('a', 'open', 'OPEN ↗');
     open.href = video.url; open.target = '_blank'; open.rel = 'noopener';
     foot.appendChild(open);
-    const editTopic = el('button', 'icon-btn admin-only', '✎ TOPIC');
-    editTopic.addEventListener('click', () => promptEditTopic(video));
+    const editTopic = el('button', 'icon-btn admin-only', '✎ EDIT');
+    editTopic.addEventListener('click', () => openEditModal(video));
     foot.appendChild(editTopic);
     const del = el('button', 'icon-btn danger admin-only', '🗑 DELETE');
     del.addEventListener('click', () => onDelete(video));
@@ -297,39 +350,82 @@
       renderAll();
     } catch (e) { alert(e.message); }
   }
-  async function promptAddTag(video) {
-    const input = window.prompt('Add tag(s), comma separated:');
-    if (input == null) return;
-    const added = input.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-    if (!added.length) return;
-    const set = new Set([...(video.tags || []), ...added]);
-    const next = Array.from(set);
-    try {
-      await patchVideo(video.id, { tags: next });
-      video.tags = next;
-      renderAll();
-    } catch (e) { alert(e.message); }
+  // ── Edit modal (topic + tags, replaces the old prompt()-based flow) ──
+  const editModal = { back: null, video: null, topic: null, tags: null, status: null };
+  function openEditModal(video) {
+    editModal.video = video;
+    editModal.topic.value = video.topic || 'Uncategorized';
+    editModal.tags.value = (video.tags || []).join(', ');
+    setEditStatus('');
+    editModal.back.classList.add('open');
+    editModal.lastFocus = document.activeElement;
+    editModal.topic.focus();
   }
-
-  async function promptEditTopic(video) {
-    const input = window.prompt('Move this video to which topic (group)?', video.topic || 'Uncategorized');
-    if (input == null) return;
-    const topic = input.trim() || 'Uncategorized';
-    if (topic === video.topic) return;
+  function closeEditModal() {
+    editModal.back.classList.remove('open');
+    editModal.video = null;
+    editModal.lastFocus?.focus?.();
+  }
+  function setEditStatus(msg, kind) {
+    editModal.status.textContent = msg || '';
+    editModal.status.className = 'status' + (kind ? ' ' + kind : '');
+  }
+  async function onEditSave() {
+    const video = editModal.video;
+    if (!video) return;
+    const topic = editModal.topic.value.trim() || 'Uncategorized';
+    const tags = editModal.tags.value.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+    setEditStatus('Saving…');
     try {
-      await patchVideo(video.id, { topic });
+      await patchVideo(video.id, { topic, tags });
       video.topic = topic;
+      video.tags = tags;
+      closeEditModal();
       renderAll();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setEditStatus(e.message, 'error'); }
   }
 
-  async function onDelete(video) {
-    if (!window.confirm(`Delete “${video.title || 'this video'}”?`)) return;
-    try {
-      await deleteVideo(video.id);
-      VIDEOS = VIDEOS.filter((v) => v.id !== video.id);
-      renderAll();
-    } catch (e) { alert(e.message); }
+  // Delete is optimistic + undoable for ~6s instead of a blocking confirm()
+  // dialog — cheap insurance against fat-fingering the delete button.
+  let pendingDelete = null; // { video, idx, timer }
+  const toast = { root: null, msg: null, btn: null };
+
+  function showUndoToast(video) {
+    if (!toast.root) return;
+    toast.msg.textContent = `Deleted "${video.title || 'video'}".`;
+    toast.root.classList.add('show');
+  }
+  function hideUndoToast() {
+    if (toast.root) toast.root.classList.remove('show');
+  }
+
+  function commitPendingDelete() {
+    if (!pendingDelete) return;
+    const { video } = pendingDelete;
+    pendingDelete = null;
+    hideUndoToast();
+    deleteVideo(video.id).catch((e) => { console.error('Delete failed:', e); });
+  }
+
+  function undoPendingDelete() {
+    if (!pendingDelete) return;
+    clearTimeout(pendingDelete.timer);
+    const { video, idx } = pendingDelete;
+    pendingDelete = null;
+    VIDEOS.splice(Math.min(idx, VIDEOS.length), 0, video);
+    hideUndoToast();
+    renderAll();
+  }
+
+  function onDelete(video) {
+    commitPendingDelete(); // any earlier pending delete is now final
+    const idx = VIDEOS.findIndex((v) => v.id === video.id);
+    if (idx === -1) return;
+    VIDEOS.splice(idx, 1);
+    renderAll();
+    const timer = setTimeout(commitPendingDelete, 6000);
+    pendingDelete = { video, idx, timer };
+    showUndoToast(video);
   }
 
   // ── Filters + render ──
@@ -384,6 +480,14 @@
     if (dl) dl.innerHTML = allTopics().map((t) => `<option value="${escapeHtml(t)}"></option>`).join('');
   }
 
+  // Cards are only built PAGE_SIZE at a time per topic (each card fires
+  // network requests for a thumbnail) — "load more" reveals the rest.
+  // Progress resets whenever the active filters actually change.
+  const PAGE_SIZE = 12;
+  let revealed = {};
+  let lastFilterSig = '';
+  function filterSig() { return `${state.topic} ${state.tag} ${state.search}`; }
+
   function renderCatalog() {
     const root = document.getElementById('catalog');
     root.innerHTML = '';
@@ -397,6 +501,9 @@
       return;
     }
 
+    const sig = filterSig();
+    if (sig !== lastFilterSig) { revealed = {}; lastFilterSig = sig; }
+
     // Group by topic
     const groups = {};
     visible.forEach((v) => {
@@ -404,15 +511,30 @@
       (groups[k] = groups[k] || []).push(v);
     });
     Object.keys(groups).sort().forEach((topic) => {
+      const all = groups[topic];
+      if (!(topic in revealed)) revealed[topic] = Math.min(PAGE_SIZE, all.length);
+      const shown = all.slice(0, revealed[topic]);
+
       const sec = el('div', 'topic-sec');
       const head = el('div', 'topic-head');
       head.appendChild(el('h2', null, escapeHtml(topic)));
       head.appendChild(el('div', 'rule'));
-      head.appendChild(el('div', 'count', `${groups[topic].length} ▮`));
+      head.appendChild(el('div', 'count', `${all.length} ▮`));
       sec.appendChild(head);
       const grid = el('div', 'grid');
-      groups[topic].forEach((v) => grid.appendChild(buildCard(v)));
+      shown.forEach((v) => grid.appendChild(buildCard(v)));
       sec.appendChild(grid);
+
+      if (revealed[topic] < all.length) {
+        const more = el('button', 'btn load-more', `▼ LOAD MORE (${all.length - revealed[topic]})`);
+        more.type = 'button';
+        more.addEventListener('click', () => {
+          revealed[topic] = Math.min(revealed[topic] + PAGE_SIZE, all.length);
+          renderCatalog();
+        });
+        sec.appendChild(more);
+      }
+
       root.appendChild(sec);
     });
   }
@@ -434,9 +556,29 @@
     modal.detected.textContent = '';
     setStatus('');
     modal.back.classList.add('open');
+    modal.lastFocus = document.activeElement;
     modal.url.focus();
   }
-  function closeModal() { modal.back.classList.remove('open'); }
+  function closeModal() {
+    modal.back.classList.remove('open');
+    modal.lastFocus?.focus?.();
+  }
+
+  // ── Focus trap (shared by both modals) ──
+  function getFocusable(container) {
+    return Array.from(container.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter((n) => n.offsetParent !== null);
+  }
+  function trapFocus(e, container) {
+    if (e.key !== 'Tab') return;
+    const focusables = getFocusable(container);
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
   function setStatus(msg, kind) {
     modal.status.textContent = msg || '';
     modal.status.className = 'status' + (kind ? ' ' + kind : '');
@@ -455,6 +597,8 @@
     const d = detectSource(url);
     if (!d) return setStatus('Unrecognized link. Use a Drive, X, or TikTok URL.', 'error');
     if (!d.externalId) return setStatus('Could not parse the video ID from that link.', 'error');
+    const dupe = VIDEOS.find((v) => v.source === d.source && v.external_id === d.externalId);
+    if (dupe) return setStatus(`Already on the wall as "${dupe.title || 'Untitled'}" (${dupe.topic || 'Uncategorized'}).`, 'error');
     const row = {
       title: modal.title.value.trim() || 'Untitled',
       topic: modal.topic.value.trim() || 'Uncategorized',
@@ -490,13 +634,33 @@
     modal.detected = document.getElementById('f-detected');
     modal.status = document.getElementById('modal-status');
 
+    editModal.back = document.getElementById('edit-modal-back');
+    editModal.topic = document.getElementById('e-topic');
+    editModal.tags = document.getElementById('e-tags');
+    editModal.status = document.getElementById('edit-modal-status');
+    document.getElementById('edit-modal-cancel').addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-save').addEventListener('click', onEditSave);
+    editModal.back.addEventListener('click', (e) => { if (e.target === editModal.back) closeEditModal(); });
+    editModal.back.addEventListener('keydown', (e) => trapFocus(e, editModal.back));
+
+    toast.root = document.getElementById('undo-toast');
+    toast.msg = document.getElementById('undo-toast-msg');
+    toast.btn = document.getElementById('undo-toast-btn');
+    toast.btn?.addEventListener('click', undoPendingDelete);
+
     modal.url.addEventListener('input', onUrlInput);
     document.getElementById('modal-cancel').addEventListener('click', closeModal);
     document.getElementById('modal-save').addEventListener('click', onSave);
     modal.back.addEventListener('click', (e) => { if (e.target === modal.back) closeModal(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+    modal.back.addEventListener('keydown', (e) => trapFocus(e, modal.back));
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (editModal.back?.classList.contains('open')) closeEditModal();
+      else closeModal();
+    });
 
     document.getElementById('add-video').addEventListener('click', openModal);
+    window.addEventListener('beforeunload', commitPendingDelete);
 
     const search = document.getElementById('search');
     search.addEventListener('input', () => { state.search = search.value.trim().toLowerCase(); renderCatalog(); });
