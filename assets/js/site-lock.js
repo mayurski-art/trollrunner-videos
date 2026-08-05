@@ -3,6 +3,11 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqc3loZnBseGp0YWtkZmtwZHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzOTc0ODksImV4cCI6MjA5MTk3MzQ4OX0.xLUcPUUguRBQttNwiIRWJHxjJjLqrQDMu4Ubsk5yZoQ';
   const SUPABASE_TABLE = 'site_updates';
   const SUPABASE_ROW_ID = 'main';
+  // Where admin-auth.js (and, if needed, the supabase-js CDN build) get
+  // lazy-loaded from — same cross-origin pattern as coming-soon.js's
+  // ensureAdminAuth(), so every subdomain's own copy of THIS file can still
+  // authenticate as admin without bundling admin-auth.js locally too.
+  const ASSET_ORIGIN = 'https://mayurski-art.github.io';
   const SITE_LOCK_STORAGE_KEY = 'trollrunner_site_public_lock_v1';
   const SITE_LOCK_META_ID = '__trollrunner_site_lock_meta__';
   const SITE_LOCK_WARNING_MS = 10000;
@@ -18,7 +23,6 @@
   let tickerEl = null;
   let statusEl = null;
   let countdownEl = null;
-  let adminActionEl = null;
 
   function safeParse(raw, fallback) {
     try {
@@ -54,9 +58,8 @@
   }
 
   // Writes go through the troll_admin_replace_site_row RPC (see
-  // assets/supabase/troll_admin_lockdown.sql on the main site repo), which
-  // requires a real admin session — the anon key alone is no longer enough
-  // to write site_updates.
+  // assets/supabase/troll_admin_lockdown.sql), which requires a real admin
+  // session — the anon key alone is no longer enough to write site_updates.
   async function getAdminWriteHeaders() {
     const headers = getReadHeaders();
     try {
@@ -66,9 +69,43 @@
     return headers;
   }
 
+  // Lazy-loads a <script> once, resolving immediately if it's already on
+  // the page (copied verbatim from coming-soon.js's identical helper, kept
+  // in sync intentionally).
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        existing.addEventListener('load', resolve);
+        existing.addEventListener('error', reject);
+        setTimeout(resolve, 0);
+        return;
+      }
+      const el = document.createElement('script');
+      el.src = src;
+      el.onload = resolve;
+      el.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(el);
+    });
+  }
+
+  // Only the admin-unlock corner needs real Supabase auth (sign-in, not
+  // just anon reads) — everything else in this file already works off the
+  // anon key. Pulled in on demand from the hub origin so every subdomain's
+  // own copy of this file doesn't need to bundle admin-auth.js too.
+  async function ensureAdminAuth() {
+    if (window.TrollrunnerAdminAuth) return window.TrollrunnerAdminAuth;
+    if (!window.supabase?.createClient) {
+      await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+    }
+    await loadScript(`${ASSET_ORIGIN}/assets/js/admin-auth.js`);
+    return window.TrollrunnerAdminAuth || null;
+  }
+
   function setStoredRecord(record) {
     const normalized = normalizeRecord(record);
     localStorage.setItem(SITE_LOCK_STORAGE_KEY, JSON.stringify(normalized));
+    if (isPublicPage && document.body) renderOverlay();
     return normalized;
   }
 
@@ -125,11 +162,22 @@
         display: none;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.42);
+        pointer-events: none;
+        background:
+          repeating-linear-gradient(0deg, rgba(255, 64, 88, 0.08) 0 2px, transparent 2px 9px),
+          radial-gradient(circle at 50% 50%, rgba(255, 64, 88, 0.2), transparent 44%),
+          rgba(0, 0, 0, 0.42);
         backdrop-filter: blur(1px);
+        animation: trollrunner-site-lock-red-alert 720ms steps(2, end) infinite;
       }
       .site-lock-overlay.is-visible { display: flex; }
-      .site-lock-overlay.is-locked { background: rgba(0, 0, 0, 0.68); }
+      .site-lock-overlay.is-locked {
+        background:
+          repeating-linear-gradient(0deg, rgba(255, 64, 88, 0.07) 0 2px, transparent 2px 9px),
+          rgba(0, 0, 0, 0.68);
+        animation: none;
+        pointer-events: auto;
+      }
       .site-lock-overlay-panel {
         width: min(100vw, 100%);
         padding: clamp(18px, 4vw, 32px) 0;
@@ -161,38 +209,61 @@
         letter-spacing: 0.12em;
         text-transform: uppercase;
       }
-      .site-lock-admin-panel {
-        display: flex;
-        justify-content: center;
-        margin-top: 18px;
-      }
-      .site-lock-admin-btn {
-        border: 0.5px solid rgba(255,255,255,0.22);
-        border-radius: 999px;
-        background: rgba(16, 18, 26, 0.78);
-        color: #fff;
-        padding: 10px 14px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        cursor: pointer;
-        box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-      }
-      .site-lock-admin-btn.is-accent {
-        background: linear-gradient(135deg, rgba(0, 122, 255, 0.95), rgba(255, 73, 167, 0.9));
-      }
-      .site-lock-admin-btn:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
       @keyframes trollrunner-site-lock-marquee {
         from { transform: translateX(0); }
         to { transform: translateX(-50%); }
       }
+      @keyframes trollrunner-site-lock-red-alert {
+        0%, 100% { box-shadow: inset 0 0 0 0 rgba(255, 64, 88, 0.1), inset 0 0 120px rgba(255, 64, 88, 0.18); }
+        50% { box-shadow: inset 0 0 0 999px rgba(255, 64, 88, 0.1), inset 0 0 180px rgba(255, 64, 88, 0.38); }
+      }
       .site-lock-warning body,
       body.site-lock-warning {
         overflow-x: hidden;
+      }
+      .site-lock-admin-corner {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        opacity: 0.28;
+        transition: opacity 0.2s ease;
+        pointer-events: auto;
+      }
+      .site-lock-admin-corner:hover,
+      .site-lock-admin-corner:focus-within {
+        opacity: 1;
+      }
+      .site-lock-admin-input {
+        width: 100px;
+        padding: 5px 8px;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        font-size: 12px;
+      }
+      .site-lock-admin-btn {
+        padding: 5px 10px;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .site-lock-admin-status {
+        position: absolute;
+        right: 0;
+        bottom: 32px;
+        width: max-content;
+        max-width: 220px;
+        font-size: 11px;
+        color: #ff9fae;
+        text-align: right;
       }
     `;
     document.head.appendChild(style);
@@ -207,27 +278,83 @@
           <span id="site-lock-ticker-b"></span>
         </div>
         <div id="site-lock-status" class="site-lock-overlay-subtext"></div>
-        <div class="site-lock-admin-panel" aria-label="Admin access">
-          <button id="site-lock-admin-action" class="site-lock-admin-btn is-accent" type="button">Unlock site</button>
-        </div>
+      </div>
+      <div class="site-lock-admin-corner">
+        <input id="site-lock-admin-pass" class="site-lock-admin-input" type="password" placeholder="admin password" aria-label="Admin password" autocomplete="current-password">
+        <button id="site-lock-admin-go" class="site-lock-admin-btn" type="button" aria-label="Admin unlock">Unlock</button>
+        <div id="site-lock-admin-status" class="site-lock-admin-status" aria-live="polite"></div>
       </div>
     `;
     document.body.appendChild(overlayEl);
     tickerEl = overlayEl.querySelector('#site-lock-ticker-a');
     statusEl = overlayEl.querySelector('#site-lock-status');
     countdownEl = overlayEl.querySelector('#site-lock-ticker-b');
-    adminActionEl = overlayEl.querySelector('#site-lock-admin-action');
-    if (adminActionEl) {
-      adminActionEl.addEventListener('click', async () => {
-        const helper = window.TrollrunnerAdminAuth;
-        if (!helper?.requestAdminLink) return;
-        const unlocked = await helper.requestAdminLink();
-        if (unlocked && window.TrollrunnerSiteLock?.requestLockTransition) {
-          window.TrollrunnerSiteLock.requestLockTransition(false);
-        }
-      });
-    }
+    wireAdminCorner();
     return overlayEl;
+  }
+
+  // The corner box that lets an admin unlock the whole network from
+  // wherever they actually land while locked — any subdomain, any browser
+  // state, no need to separately find and navigate to admin.html first.
+  // Wired once, right alongside the overlay it lives in.
+  function wireAdminCorner() {
+    const input = overlayEl.querySelector('#site-lock-admin-pass');
+    const goBtn = overlayEl.querySelector('#site-lock-admin-go');
+    const status = overlayEl.querySelector('#site-lock-admin-status');
+    if (!input || !goBtn || !status) return;
+
+    async function submit() {
+      const password = String(input.value || '');
+      if (!password) {
+        input.focus();
+        return;
+      }
+      goBtn.disabled = true;
+      status.textContent = 'Checking...';
+      try {
+        const auth = await ensureAdminAuth();
+        if (!auth?.signInWithAdminPassword) throw new Error('Admin login service failed to load.');
+        await auth.signInWithAdminPassword(password, { silent: true });
+        input.value = '';
+        status.textContent = '';
+        requestLockTransition(false);
+      } catch (error) {
+        status.textContent = error?.message ? String(error.message) : 'Wrong admin password.';
+      } finally {
+        goBtn.disabled = false;
+      }
+    }
+
+    goBtn.addEventListener('click', submit);
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        void submit();
+      }
+    });
+  }
+
+  // While truly locked (not just the pending countdown warning), nothing
+  // on the page should be usable except the overlay itself -- covers
+  // login/register, feedback, chat, games, and everything else, not just
+  // the parts a click-through overlay happened to sit visually on top of.
+  // `inert` blocks both pointer AND keyboard/AT interaction for the whole
+  // subtree; admin.html is a separate document and is never affected.
+  function setBackgroundInert(isLocked) {
+    if (!document.body) return;
+    // The "coming soon" gate (assets/js/coming-soon.js) also needs everything
+    // behind it inert until an admin unlocks it. Both scripts run a render
+    // loop that touches every body child's `inert` attribute, so without this
+    // check they fight each other every ~250ms. Folding its state in here
+    // keeps a single source of truth instead of each loop clobbering the other.
+    const comingSoonGate = document.getElementById('coming-soon-gate');
+    const comingSoonActive = Boolean(comingSoonGate) && !comingSoonGate.classList.contains('is-unlocked');
+    const shouldInert = isLocked || comingSoonActive;
+    Array.from(document.body.children).forEach(child => {
+      if (child === overlayEl || child === comingSoonGate) return;
+      if (shouldInert) child.setAttribute('inert', '');
+      else child.removeAttribute('inert');
+    });
   }
 
   function buildTickerText(state) {
@@ -248,6 +375,7 @@
     overlay.classList.toggle('is-locked', state.mode === 'locked');
     document.body.classList.toggle('site-lock-warning', state.mode === 'pending');
     document.body.classList.toggle('site-lock-locked', state.mode === 'locked');
+    setBackgroundInert(state.mode === 'locked');
 
     if (tickerEl) tickerEl.textContent = buildTickerText(state);
     if (countdownEl) countdownEl.textContent = state.mode === 'pending' ? `${getRemainingSeconds(state)} SECOND WARNING` : 'ACCESS PAUSED';
@@ -256,33 +384,7 @@
         ? 'Public access will lock shortly.'
         : (state.mode === 'locked' ? 'Public access is locked.' : '');
     }
-    setBackgroundInert(state.mode === 'locked');
-    void refreshAdminControls(state);
     return state;
-  }
-
-  // While truly locked (not just the pending countdown warning), nothing
-  // on the page should be usable except the overlay itself (including its
-  // own "Unlock site" button) -- covers login/register, feedback, chat,
-  // games, and everything else. `inert` blocks both pointer AND
-  // keyboard/AT interaction for the whole subtree; admin.html is a
-  // separate document and is never affected.
-  function setBackgroundInert(isLocked) {
-    if (!document.body) return;
-    Array.from(document.body.children).forEach(child => {
-      if (child === overlayEl) return;
-      if (isLocked) child.setAttribute('inert', '');
-      else child.removeAttribute('inert');
-    });
-  }
-
-  async function refreshAdminControls(state = getComputedRecord()) {
-    if (!adminActionEl) return;
-    const helper = window.TrollrunnerAdminAuth;
-    const authed = helper?.hasAdminSession ? await helper.hasAdminSession() : false;
-    adminActionEl.textContent = 'Unlock site';
-    adminActionEl.disabled = false;
-    adminActionEl.dataset.mode = authed ? 'authed' : 'locked';
   }
 
   function broadcastState() {
