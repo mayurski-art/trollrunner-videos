@@ -4,9 +4,7 @@
   const SUPABASE_TABLE = 'site_updates';
   const SUPABASE_ROW_ID = 'main';
   // Where admin-auth.js (and, if needed, the supabase-js CDN build) get
-  // lazy-loaded from — same cross-origin pattern as coming-soon.js's
-  // ensureAdminAuth(), so every subdomain's own copy of THIS file can still
-  // authenticate as admin without bundling admin-auth.js locally too.
+  // lazy-loaded from.
   const ASSET_ORIGIN = 'https://mayurski-art.github.io';
   const SITE_LOCK_STORAGE_KEY = 'trollrunner_site_public_lock_v1';
   const SITE_LOCK_META_ID = '__trollrunner_site_lock_meta__';
@@ -70,8 +68,7 @@
   }
 
   // Lazy-loads a <script> once, resolving immediately if it's already on
-  // the page (copied verbatim from coming-soon.js's identical helper, kept
-  // in sync intentionally).
+  // the page.
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const existing = document.querySelector(`script[src="${src}"]`);
@@ -342,17 +339,9 @@
   // subtree; admin.html is a separate document and is never affected.
   function setBackgroundInert(isLocked) {
     if (!document.body) return;
-    // The "coming soon" gate (assets/js/coming-soon.js) also needs everything
-    // behind it inert until an admin unlocks it. Both scripts run a render
-    // loop that touches every body child's `inert` attribute, so without this
-    // check they fight each other every ~250ms. Folding its state in here
-    // keeps a single source of truth instead of each loop clobbering the other.
-    const comingSoonGate = document.getElementById('coming-soon-gate');
-    const comingSoonActive = Boolean(comingSoonGate) && !comingSoonGate.classList.contains('is-unlocked');
-    const shouldInert = isLocked || comingSoonActive;
     Array.from(document.body.children).forEach(child => {
-      if (child === overlayEl || child === comingSoonGate) return;
-      if (shouldInert) child.setAttribute('inert', '');
+      if (child === overlayEl) return;
+      if (isLocked) child.setAttribute('inert', '');
       else child.removeAttribute('inert');
     });
   }
